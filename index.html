@@ -1,11 +1,188 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hello</title>
+  <title>旅するタイマー</title>
+  <meta name="description" content="勉強した時間だけ、旅するタイマー。国内は新幹線、海外は飛行機。">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Hello from Kakkoi School!</h1>
+  <main>
+    <header class="hero">
+      <h1>旅するタイマー</h1>
+      <p class="lead">勉強した時間だけ、旅しよう。<br>国内は新幹線、海外は飛行機。</p>
+    </header>
+
+    <ul class="tiles" aria-label="これまでの記録">
+      <li>
+        <span class="tile-icon" aria-hidden="true">🔥</span>
+        <span class="tile-value" id="tile-streak">0日</span>
+        <span class="tile-label">連続日数</span>
+      </li>
+      <li>
+        <span class="tile-icon" aria-hidden="true">⏱️</span>
+        <span class="tile-value" id="tile-total">0分</span>
+        <span class="tile-label">累計の勉強</span>
+      </li>
+      <li>
+        <span class="tile-icon" aria-hidden="true">🏅</span>
+        <span class="tile-value" id="tile-rank">旅の準備中</span>
+        <span class="tile-label" id="tile-rank-next"></span>
+      </li>
+    </ul>
+
+    <section class="card" aria-labelledby="timer-h">
+      <h2 id="timer-h" class="sr-only">タイマー</h2>
+
+      <div class="field">
+        <span id="trip-label" class="label">旅のしかた</span>
+        <div class="modes" role="group" aria-labelledby="trip-label">
+          <button type="button" class="mode" data-mode="japan" aria-pressed="true">
+            <strong>🚄 国内版</strong>
+            <span>新幹線 · 1分 = 3 km</span>
+          </button>
+          <button type="button" class="mode" data-mode="world" aria-pressed="false">
+            <strong>✈️ 海外版</strong>
+            <span>飛行機 · 1分 = 10 km</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="task">何をしますか?</label>
+        <input id="task" list="task-list" placeholder="例: 簿記1級 商業簿記" autocomplete="off" maxlength="40">
+        <datalist id="task-list"></datalist>
+      </div>
+
+      <div class="field">
+        <span id="mode-label" class="label">時間</span>
+        <div class="presets" role="group" aria-labelledby="mode-label">
+          <button type="button" class="chip" data-min="15">15分</button>
+          <button type="button" class="chip" data-min="25">25分</button>
+          <button type="button" class="chip" data-min="50">50分</button>
+          <button type="button" class="chip" data-min="0">ストップウォッチ</button>
+          <label class="custom" for="custom-min">
+            <input id="custom-min" type="number" inputmode="numeric" min="1" max="300" placeholder="自由">
+            <span>分</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="ring-wrap">
+        <svg class="ring" viewBox="0 0 200 200" aria-hidden="true">
+          <circle class="ring-bg" cx="100" cy="100" r="88"></circle>
+          <circle class="ring-fg" id="ring-fg" cx="100" cy="100" r="88" transform="rotate(-90 100 100)"></circle>
+        </svg>
+        <div class="ring-text">
+          <div class="time" id="time" role="timer">25:00</div>
+          <div class="sub" id="time-sub">残り時間</div>
+          <div class="gain" id="time-gain"></div>
+        </div>
+      </div>
+
+      <p class="hint" id="hint"></p>
+
+      <div class="controls">
+        <button type="button" id="btn-main" class="primary">開始</button>
+        <button type="button" id="btn-finish">終了して記録</button>
+        <button type="button" id="btn-reset">リセット</button>
+      </div>
+      <p id="message" class="message" role="status"></p>
+    </section>
+
+    <section class="card ticket" aria-labelledby="journey-h">
+      <p class="ticket-kind" id="ticket-kind">乗車券 · 新幹線</p>
+      <h2 id="journey-h" class="sr-only">旅の進み具合</h2>
+
+      <div class="route-row">
+        <div class="place">
+          <span class="place-emoji" id="from-emoji" aria-hidden="true">🗼</span>
+          <span class="place-name" id="from-name">東京</span>
+          <span class="place-label">出発</span>
+        </div>
+        <div class="route-mid" aria-hidden="true"></div>
+        <div class="place">
+          <span class="place-emoji" id="to-emoji" aria-hidden="true"></span>
+          <span class="place-name" id="to-name"></span>
+          <span class="place-label">目的地</span>
+        </div>
+      </div>
+      <p class="place-note" id="to-note"></p>
+
+      <div class="field goal-field">
+        <label for="goal">目的地を選ぶ</label>
+        <select id="goal"></select>
+      </div>
+
+      <dl class="facts">
+        <div><dt>旅した距離</dt><dd id="fact-done">0 km</dd></div>
+        <div><dt>目的地まで</dt><dd id="fact-left">—</dd></div>
+        <div><dt>あと勉強</dt><dd id="fact-eta">—</dd></div>
+      </dl>
+      <div class="goal-bar" id="goal-progress" role="progressbar" aria-label="目的地までの進み具合" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="goal-fill" id="goal-fill"></div>
+      </div>
+      <p class="goal-pct" id="goal-pct"></p>
+
+      <div class="perforation" aria-hidden="true"></div>
+
+      <p class="leg-title">いまの区間</p>
+      <div class="track" id="track" data-mode="japan" aria-hidden="true">
+        <div class="track-line"><div class="track-done" id="track-done"></div></div>
+        <span class="dot dot-from"></span>
+        <span class="dot dot-to"></span>
+        <svg class="vehicle plane" id="plane" viewBox="0 0 24 24">
+          <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"></path>
+        </svg>
+        <svg class="vehicle train" id="train" viewBox="0 0 48 24">
+          <path d="M2 8a4 4 0 0 1 4-4h21c8 0 14 6 19 11v3a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z"></path>
+          <path class="win" d="M7 8h5v4H7zM14 8h5v4h-5zM21 8h5v4h-5zM28.5 8H31c2.5 0 4.7 1.7 6.5 4h-9z"></path>
+        </svg>
+      </div>
+      <div class="legs">
+        <span id="leg-from">東京</span>
+        <span id="leg-to">名古屋</span>
+      </div>
+      <p id="journey-text" class="journey-text"></p>
+      <p class="muted other-totals">ほかの版: <span id="other-totals"></span></p>
+    </section>
+
+    <section class="card" aria-labelledby="passport-h">
+      <h2 id="passport-h">旅のパスポート</h2>
+      <p class="muted" id="passport-count"></p>
+      <ol class="passport" id="passport"></ol>
+    </section>
+
+    <section class="card" aria-labelledby="today-h">
+      <h2 id="today-h">今日の勉強</h2>
+      <p class="total"><span id="today-total">0分</span> <span class="muted">合計</span></p>
+
+      <div class="goal-line">
+        <label for="daily-goal">今日の目標</label>
+        <input id="daily-goal" type="number" inputmode="numeric" min="1" max="1440">
+        <span>分</span>
+      </div>
+      <div class="bar-track daily" id="daily-progress" role="progressbar" aria-label="今日の目標の進み具合" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="bar-fill daily-fill" id="daily-fill"></div>
+      </div>
+      <p class="muted daily-text" id="daily-text"></p>
+
+      <ul class="bars" id="today-list"></ul>
+    </section>
+
+    <section class="card" aria-labelledby="week-h">
+      <h2 id="week-h">過去7日間</h2>
+      <p class="muted">✓ は今日の目標に届いた日です。</p>
+      <div class="week" id="week"></div>
+    </section>
+
+    <footer>
+      <p class="muted">記録はこのブラウザーの中だけに保存されます。</p>
+      <button type="button" id="btn-clear" class="link">記録をすべて消す</button>
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
 </body>
 </html>

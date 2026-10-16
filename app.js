@@ -2,13 +2,13 @@
 
 // ---------- settings ----------
 const STORAGE_KEY = 'travel-timer:v1';
-const RING_LENGTH = 2 * Math.PI * 88; // must match r="88" in index.html
 const STOPWATCH_LAP_MS = 60 * 60 * 1000;
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 const DEFAULT_MODE = 'japan';
 const LEGACY_MODE = 'world'; // sessions saved before versions existed
 const DEFAULT_DAILY_GOAL_MIN = 60;
 const UNNAMED_TASK = '(名前なし)';
+const ARRIVAL_SHOWN_MS = 12000;
 
 const RANKS = [
   { hours: 0, title: '旅の準備中' },
@@ -27,24 +27,34 @@ const CHEERS = [
   'この調子でいきましょう!',
 ];
 
+// photo: id of the file in photos/ (see photos.js for the credit)
 const CITY_INFO = {
-  '東京': { emoji: '🗼', note: 'すべてのはじまりの街' },
-  '名古屋': { emoji: '🏯', note: 'ひつまぶしと味噌カツの街' },
-  '新大阪': { emoji: '🐙', note: 'たこ焼きと食い倒れの街・大阪の玄関口' },
-  '岡山': { emoji: '🍑', note: '桃太郎伝説のふるさと' },
-  '広島': { emoji: '⛩️', note: '宮島の厳島神社とお好み焼き' },
-  '博多': { emoji: '🍜', note: '豚骨ラーメンと明太子' },
-  '熊本': { emoji: '🐻', note: '熊本城とくまモンの街' },
-  '鹿児島中央': { emoji: '🌋', note: '桜島と黒豚の街' },
-  '大阪': { emoji: '🐙', note: 'たこ焼きと食い倒れの街' },
-  '福岡': { emoji: '🍜', note: '屋台とラーメンの街' },
-  'ソウル': { emoji: '🌶️', note: '韓国の首都。屋台グルメが人気' },
-  '上海': { emoji: '🥟', note: '小籠包と夜景の国際都市' },
-  '香港': { emoji: '🌃', note: '百万ドルの夜景と飲茶' },
-  'バンコク': { emoji: '🐘', note: '寺院と屋台の街' },
-  'シンガポール': { emoji: '🦁', note: 'マーライオンのいる都市国家' },
-  'ドバイ': { emoji: '🐪', note: '砂漠に建つ超高層ビルの街' },
-  'パリ': { emoji: '🥐', note: 'エッフェル塔とクロワッサンの街' },
+  '東京': { emoji: '🗼', photo: 'tokyo', note: 'すべてのはじまりの街' },
+  '名古屋': { emoji: '🏯', photo: 'nagoya', note: 'ひつまぶしと味噌カツの街' },
+  '新大阪': { emoji: '🐙', photo: 'osaka', note: 'たこ焼きと食い倒れの街・大阪の玄関口' },
+  '岡山': { emoji: '🍑', photo: 'okayama', note: '桃太郎伝説のふるさと' },
+  '広島': { emoji: '⛩️', photo: 'hiroshima', note: '宮島の厳島神社とお好み焼き' },
+  '博多': { emoji: '🍜', photo: 'fukuoka', note: '豚骨ラーメンと明太子' },
+  '熊本': { emoji: '🐻', photo: 'kumamoto', note: '熊本城とくまモンの街' },
+  '鹿児島中央': { emoji: '🌋', photo: 'kagoshima', note: '桜島と黒豚の街' },
+  '大阪': { emoji: '🐙', photo: 'osaka', note: 'たこ焼きと食い倒れの街' },
+  '福岡': { emoji: '🍜', photo: 'fukuoka', note: '屋台とラーメンの街' },
+  'ソウル': { emoji: '🌶️', photo: 'seoul', note: '韓国の首都。王宮と屋台グルメの街' },
+  '上海': { emoji: '🥟', photo: 'shanghai', note: '小籠包と夜景の国際都市' },
+  '香港': { emoji: '🌃', photo: 'hongkong', note: '百万ドルの夜景と飲茶' },
+  'バンコク': { emoji: '🐘', photo: 'bangkok', note: '寺院と屋台の街' },
+  'シンガポール': { emoji: '🦁', photo: 'singapore', note: 'マーライオンのいる都市国家' },
+  'ドバイ': { emoji: '🐪', photo: 'dubai', note: '砂漠に建つ超高層ビルの街' },
+  'パリ': { emoji: '🥐', photo: 'paris', note: 'エッフェル塔とクロワッサンの街' },
+};
+
+// which part of a photo stays visible when it is cropped to a landscape frame
+const PHOTO_FOCUS = { paris: '50% 25%', fukuoka: '50% 25%', okayama: '50% 25%' };
+
+const PHOTO_LABEL = {
+  tokyo: '東京', nagoya: '名古屋', osaka: '大阪', okayama: '岡山', hiroshima: '広島', fukuoka: '福岡・博多',
+  kumamoto: '熊本', kagoshima: '鹿児島', seoul: 'ソウル', shanghai: '上海', hongkong: '香港',
+  bangkok: 'バンコク', singapore: 'シンガポール', dubai: 'ドバイ', paris: 'パリ',
 };
 
 // legs: [from, to, approximate distance in km]
@@ -53,6 +63,8 @@ const MODES = {
   japan: {
     label: '国内版',
     vehicle: '新幹線',
+    vehicleKind: 'train',
+    icon: '🚄',
     ticket: '乗車券',
     collect: 'kippu', // shinkansen: collect train tickets
     collectTitle: '旅のきっぷ',
@@ -70,6 +82,8 @@ const MODES = {
   world: {
     label: '海外版',
     vehicle: '飛行機',
+    vehicleKind: 'plane',
+    icon: '✈️',
     ticket: '搭乗券',
     collect: 'stamps', // airplane: collect passport stamps
     collectTitle: '旅のパスポート',
@@ -89,7 +103,7 @@ const MODES = {
 };
 
 function makeCity(name, km) {
-  return { name, km, ...(CITY_INFO[name] || { emoji: '📍', note: '' }) };
+  return { name, km, ...(CITY_INFO[name] || { emoji: '📍', photo: '', note: '' }) };
 }
 
 for (const mode of Object.values(MODES)) {
@@ -110,6 +124,8 @@ let targetMin = 25; // 0 means stopwatch
 let timer = { status: 'idle', baseMs: 0, startedAt: 0 }; // status: idle | running | paused
 let audioCtx = null;
 let lastReached = -1; // -1 = unknown yet, so no false "arrived" message
+let arrivalTimer = 0;
+const announced = new Set(); // "mode:city" pairs whose arrival photo was already shown
 
 // ---------- storage ----------
 function isValidSession(s) {
@@ -133,6 +149,7 @@ function emptyStore() {
     lastMode: DEFAULT_MODE,
     goals: defaultGoals(),
     dailyGoalMin: DEFAULT_DAILY_GOAL_MIN,
+    cameraMode: 'leg', // map: 'leg' zooms on the current section, 'all' shows the whole map
     active: null,
   };
 }
@@ -168,6 +185,7 @@ function loadStore() {
     }
     if (typeof parsed.lastTask === 'string') base.lastTask = parsed.lastTask;
     if (MODES[parsed.lastMode]) base.lastMode = parsed.lastMode;
+    if (parsed.cameraMode === 'all' || parsed.cameraMode === 'leg') base.cameraMode = parsed.cameraMode;
     for (const [key, mode] of Object.entries(MODES)) {
       const goal = parsed.goals && parsed.goals[key];
       if (mode.cities.slice(1).some((c) => c.name === goal)) base.goals[key] = goal;
@@ -257,6 +275,15 @@ function fmtDate(key) {
 function kmFor(key, sessionMin = 0) {
   return (loggedSeconds[key] / 60 + sessionMin) * MODES[key].kmPerMin;
 }
+
+// minutes of the running session, capped at the target
+function currentSessionMin() {
+  if (timer.status === 'idle') return 0;
+  const ms = elapsedMs();
+  return (targetMin > 0 ? Math.min(ms, targetMs()) : ms) / 60000;
+}
+
+const liveKm = () => kmFor(currentMode, currentSessionMin());
 
 // number of cities reached, not counting the start city
 function reachedCount(key, km) {
@@ -362,6 +389,57 @@ function confetti() {
   setTimeout(() => box.remove(), 4500);
 }
 
+// ---------- photos ----------
+function link(text, href) {
+  if (!/^https:\/\//.test(href || '')) return document.createTextNode(text);
+  const a = el('a', '', text);
+  a.href = href;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  return a;
+}
+
+// "author / license / Wikimedia Commons", as nodes
+function creditNodes(credit) {
+  return [`${credit.author} / `, link(credit.license, credit.licenseUrl), ' / ', link('Wikimedia Commons', credit.page)];
+}
+
+function fillCredit(node, credit) {
+  node.replaceChildren();
+  if (credit) node.append('写真: ', ...creditNodes(credit));
+}
+
+// shows the photo of a city in <img>; returns its credit (or null when there is no photo)
+function setPhoto(img, city) {
+  const credit = (window.PHOTOS && window.PHOTOS[city.photo]) || null;
+  img.hidden = !credit;
+  if (!credit) return null;
+  if (img.dataset.photo !== city.photo) {
+    img.src = credit.file;
+    img.dataset.photo = city.photo;
+  }
+  img.alt = `${city.name}の写真`;
+  img.style.objectPosition = PHOTO_FOCUS[city.photo] || '50% 50%';
+  return credit;
+}
+
+function showArrival(city, isGoal) {
+  const mode = MODES[currentMode];
+  announced.add(`${currentMode}:${city.name}`);
+  const credit = setPhoto($('arrival-photo'), city);
+  $('arrival-title').textContent = `${mode.icon} ${city.name}に到着!`;
+  $('arrival-note').textContent = isGoal ? `🎉 目的地です。${city.note}` : city.note;
+  fillCredit($('arrival-credit'), credit);
+  $('arrival').hidden = false;
+  clearTimeout(arrivalTimer);
+  arrivalTimer = setTimeout(hideArrival, ARRIVAL_SHOWN_MS);
+}
+
+function hideArrival() {
+  clearTimeout(arrivalTimer);
+  $('arrival').hidden = true;
+}
+
 // ---------- timer logic ----------
 function elapsedMs() {
   return timer.baseMs + (timer.status === 'running' ? Date.now() - timer.startedAt : 0);
@@ -438,6 +516,13 @@ function finish(auto) {
 
   setMessage(parts.join(' '));
 
+  // show the arrival photo, unless it was already shown while the timer was running
+  const lastArrival = arrived[arrived.length - 1];
+  if (lastArrival && !announced.has(`${currentMode}:${lastArrival.name}`)) {
+    showArrival(lastArrival, goalReached && lastArrival.name === goal.name);
+  }
+  arrived.forEach((c) => announced.add(`${currentMode}:${c.name}`));
+
   if (goalReached || dailyReached) {
     fanfare();
     confetti();
@@ -462,6 +547,7 @@ function onClear() {
   store.lastTask = '';
   loggedSeconds = sumSecondsByMode(store.sessions);
   lastReached = -1;
+  announced.clear();
   saveStore();
   setMessage('記録をすべて消しました。');
   render();
@@ -478,6 +564,7 @@ function setMode(key) {
   currentMode = key;
   store.lastMode = key;
   lastReached = -1;
+  hideArrival();
   saveStore();
   render();
 }
@@ -496,6 +583,12 @@ function onDailyGoalChange(event) {
     store.dailyGoalMin = value;
     saveStore();
   }
+  render();
+}
+
+function onMapToggle() {
+  store.cameraMode = store.cameraMode === 'leg' ? 'all' : 'leg';
+  saveStore();
   render();
 }
 
@@ -530,6 +623,7 @@ function hintText(km, active) {
   return `次の ${next.name} ${next.emoji} まで あと ${toNext}`;
 }
 
+// everything that changes every tick: the clock, the session bar and the distances
 function renderLive() {
   const mode = MODES[currentMode];
   const ms = elapsedMs();
@@ -544,25 +638,27 @@ function renderLive() {
   } else {
     clock = fmtClock(Math.floor(ms / 1000));
     progress = (ms % STOPWATCH_LAP_MS) / STOPWATCH_LAP_MS;
-    $('time-sub').textContent = '経過時間 (リング1周 = 1時間)';
+    $('time-sub').textContent = '経過時間 (バー1杯 = 1時間)';
   }
 
   $('time').textContent = clock;
-  $('ring-fg').style.strokeDashoffset = String(RING_LENGTH * (1 - progress));
+  $('session-fill').style.width = `${(progress * 100).toFixed(1)}%`;
+  $('session-bar').setAttribute('aria-valuenow', String(Math.floor(progress * 100)));
   document.title = timer.status === 'running' ? `${clock} 旅するタイマー` : '旅するタイマー';
 
-  const sessionMin = active ? (targetMin > 0 ? Math.min(ms, targetMs()) : ms) / 60000 : 0;
+  const sessionMin = currentSessionMin();
   const totalKm = kmFor(currentMode, sessionMin);
 
   $('time-gain').textContent = active
     ? `この回 +${(sessionMin * mode.kmPerMin).toFixed(1)} km`
-    : `${mode.vehicle}: 1分 = ${mode.kmPerMin} km`;
+    : `${mode.vehicle}: 1分 = ${mode.kmPerMin} km${targetMin === 0 ? ' · 続けた分だけ進みます' : ''}`;
   $('hint').textContent = hintText(totalKm, active);
 
   const reached = reachedCount(currentMode, totalKm);
   if (lastReached >= 0 && timer.status === 'running' && reached > lastReached) {
     const city = mode.cities[reached];
     setMessage(`${mode.vehicle}が ${city.name} に到着! ${city.emoji}`);
+    if (!announced.has(`${currentMode}:${city.name}`)) showArrival(city, city.name === store.goals[currentMode]);
   }
   lastReached = reached;
 
@@ -571,16 +667,8 @@ function renderLive() {
 
 function renderJourney(totalKm) {
   const mode = MODES[currentMode];
-  const cities = mode.cities;
   const goal = goalCity(currentMode);
 
-  // ticket
-  $('ticket-kind').textContent = `${mode.ticket} · ${mode.vehicle}`;
-  $('from-emoji').textContent = cities[0].emoji;
-  $('from-name').textContent = cities[0].name;
-  $('to-emoji').textContent = goal.emoji;
-  $('to-name').textContent = goal.name;
-  $('to-note').textContent = goal.note;
   $('fact-done').textContent = fmtKm(totalKm);
 
   const left = goal.km - totalKm;
@@ -592,44 +680,54 @@ function renderJourney(totalKm) {
   } else {
     $('fact-left').textContent = '到着!';
     $('fact-eta').textContent = '—';
-    $('goal-pct').textContent = goal === cities[cities.length - 1]
+    $('goal-pct').textContent = goal === mode.cities[mode.cities.length - 1]
       ? `🎉 ${goal.name}に到着! ${mode.label}を完走しました。`
       : `🎉 ${goal.name}に到着済み! 次の目的地を選ぼう。`;
   }
   $('goal-fill').style.width = `${(ratio * 100).toFixed(2)}%`;
   $('goal-progress').setAttribute('aria-valuenow', String(Math.floor(ratio * 100)));
 
-  // current leg
-  let fromCity;
-  let toCity;
-  let fraction;
-  let text;
-
+  // the section the vehicle is on now, shown on the map
+  const cities = mode.cities;
   if (totalKm >= mode.routeKm) {
-    fromCity = cities[cities.length - 2];
-    toCity = cities[cities.length - 1];
-    fraction = 1;
-    text = `${toCity.name}に到着しました! 東京から ${fmtKm(mode.routeKm)} の${mode.label}が完成です。`;
+    $('map-leg').textContent = `${cities[cities.length - 1].name} に到着`;
   } else {
     let i = 0;
     while (totalKm >= cities[i + 1].km) i += 1;
-    fromCity = cities[i];
-    toCity = cities[i + 1];
-    fraction = (totalKm - fromCity.km) / (toCity.km - fromCity.km);
-    const minutes = Math.ceil((toCity.km - totalKm) / mode.kmPerMin);
-    text = `${toCity.name}まで あと ${fmtKm(toCity.km - totalKm, Math.ceil)} (勉強 約${fmtDuration(minutes * 60)})`;
+    $('map-leg').textContent = `${cities[i].name} → ${cities[i + 1].name}`;
   }
-
-  $('track').dataset.mode = currentMode;
-  $('leg-from').textContent = fromCity.name;
-  $('leg-to').textContent = toCity.name;
-  $('plane').style.setProperty('--p', fraction.toFixed(4));
-  $('train').style.setProperty('--p', fraction.toFixed(4));
-  $('track-done').style.width = `${(fraction * 100).toFixed(2)}%`;
-  $('journey-text').textContent = text;
 
   const others = Object.keys(MODES).filter((key) => key !== currentMode);
   $('other-totals').textContent = others.map((key) => `${MODES[key].label} ${fmtKm(kmFor(key))}`).join(' / ');
+}
+
+// the destination card: changes only when the version or the destination changes
+function renderDestination() {
+  const mode = MODES[currentMode];
+  const goal = goalCity(currentMode);
+  const start = mode.cities[0];
+
+  $('ticket-kind').textContent = `${mode.ticket} · ${mode.vehicle}`;
+  $('from-emoji').textContent = start.emoji;
+  $('from-name').textContent = start.name;
+  $('to-emoji').textContent = goal.emoji;
+  $('to-name').textContent = goal.name;
+  $('to-note').textContent = goal.note;
+  fillCredit($('dest-credit'), setPhoto($('dest-photo'), goal));
+}
+
+function renderMap() {
+  const mode = MODES[currentMode];
+  const goal = goalCity(currentMode);
+  TravelMap.setRoute({ key: currentMode, cities: mode.cities, vehicle: mode.vehicleKind });
+  TravelMap.setView({
+    getKm: liveKm,
+    goalName: goal.name,
+    cameraMode: store.cameraMode,
+    running: timer.status === 'running',
+  });
+  $('map').setAttribute('aria-label', `${mode.label}の地図。${mode.vehicle}で${goal.name}を目指しています。`);
+  $('map-toggle').textContent = store.cameraMode === 'leg' ? '🔍 全体を見る' : '🔍 区間を見る';
 }
 
 function renderControls() {
@@ -816,14 +914,25 @@ function renderTaskSuggestions() {
   }
 }
 
+function buildCredits() {
+  const list = $('credits-list');
+  for (const [id, credit] of Object.entries(window.PHOTOS || {})) {
+    const li = el('li');
+    li.append(`${PHOTO_LABEL[id] || id}: `, ...creditNodes(credit));
+    list.append(li);
+  }
+}
+
 function render() {
   renderControls();
   renderTiles();
   renderGoalSelect();
+  renderDestination();
   renderPassport();
   renderToday();
   renderWeek();
   renderTaskSuggestions();
+  renderMap();
   renderLive();
 }
 
@@ -831,6 +940,8 @@ function render() {
 function setup() {
   $('task').value = store.lastTask;
   restoreActive();
+  TravelMap.init($('map'));
+  buildCredits();
 
   document.querySelectorAll('.mode').forEach((btn) => {
     btn.addEventListener('click', () => setMode(btn.dataset.mode));
@@ -848,6 +959,8 @@ function setup() {
   });
   $('goal').addEventListener('change', onGoalChange);
   $('daily-goal').addEventListener('change', onDailyGoalChange);
+  $('map-toggle').addEventListener('click', onMapToggle);
+  $('arrival-close').addEventListener('click', hideArrival);
   $('btn-main').addEventListener('click', onMain);
   $('btn-finish').addEventListener('click', () => finish(false));
   $('btn-reset').addEventListener('click', onReset);

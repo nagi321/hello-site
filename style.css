@@ -7,7 +7,12 @@
   --accent: #c2410c;
   --on-accent: #ffffff;
   --route: #0e7490;
-  --ring-track: #e2edf5;
+  --route-dim: #7f95a6;
+  --track: #e2edf5;
+  --sea: #cfe8f6;
+  --land: #f0e9d6;
+  --land-line: #b9ad8e;
+  --halo: rgb(255 255 255 / 88%);
   --hero-a: #0c4a6e;
   --hero-b: #0e7490;
   --hero-c: #b45309;
@@ -27,7 +32,12 @@
     --accent: #fb923c;
     --on-accent: #1a1006;
     --route: #22d3ee;
-    --ring-track: #243a4b;
+    --route-dim: #6b8497;
+    --track: #243a4b;
+    --sea: #0b2233;
+    --land: #2a4656;
+    --land-line: #46677a;
+    --halo: rgb(11 24 35 / 88%);
     --ink-1: #60a5fa;
     --ink-2: #f87171;
     --ink-3: #a78bfa;
@@ -54,6 +64,7 @@ main {
 
 h2 { margin: 0 0 8px; font-size: 1.1rem; }
 .muted { color: var(--muted); font-size: 0.9rem; }
+a { color: inherit; }
 
 .sr-only {
   position: absolute;
@@ -69,7 +80,7 @@ h2 { margin: 0 0 8px; font-size: 1.1rem; }
   background: linear-gradient(135deg, var(--hero-a), var(--hero-b) 55%, var(--hero-c));
   color: #fff;
   border-radius: 20px;
-  padding: 28px 20px;
+  padding: 24px 20px;
   text-align: center;
   margin-bottom: 12px;
   box-shadow: var(--shadow);
@@ -160,48 +171,93 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 :focus-visible { outline: 3px solid var(--route); outline-offset: 2px; }
 
-/* ---------- ring ---------- */
-.ring-wrap {
-  position: relative;
-  width: min(70vw, 260px);
-  aspect-ratio: 1;
-  margin: 8px auto 12px;
-}
-.ring { width: 100%; height: 100%; }
-.ring circle { fill: none; stroke-width: 10; }
-.ring-bg { stroke: var(--ring-track); }
-.ring-fg {
-  stroke: var(--accent);
-  stroke-linecap: round;
-  stroke-dasharray: 552.92;
-  stroke-dashoffset: 552.92;
-  transition: stroke-dashoffset 0.3s linear;
-}
+/* ---------- map ---------- */
+.map-wrap { position: relative; margin: 4px -20px 0; }
+.map { width: 100%; background: var(--sea); overflow: hidden; }
+.map svg { display: block; width: 100%; height: 100%; }
 
-.ring-text {
+.map-chip,
+.map-toggle,
+.map-leg {
   position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
+  background: color-mix(in srgb, var(--card) 90%, transparent);
+  border: 1px solid var(--line);
 }
-.time {
-  font-size: clamp(2.4rem, 12vw, 3.4rem);
+.map-chip { left: 10px; top: 10px; border-radius: 12px; padding: 2px 12px 4px; }
+.map-chip .time {
+  font-size: 1.7rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  line-height: 1.1;
+  line-height: 1.2;
 }
-.sub { color: var(--muted); font-size: 0.9rem; }
-.gain { color: var(--route); font-size: 0.9rem; font-weight: 600; }
-
-.hint {
-  margin: 0 0 14px;
-  text-align: center;
+.sub { color: var(--muted); font-size: 0.72rem; line-height: 1.2; }
+.map-toggle { right: 10px; top: 10px; padding: 4px 12px; font-size: 0.8rem; }
+.map-leg {
+  left: 10px;
+  bottom: 10px;
+  border-radius: 999px;
+  padding: 2px 12px;
+  font-size: 0.85rem;
   font-weight: 700;
-  color: var(--route);
 }
+
+/* drawn inside the SVG */
+.map .sea { fill: var(--sea); }
+.map .land {
+  fill: var(--land);
+  stroke: var(--land-line);
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+  fill-rule: evenodd;
+  vector-effect: non-scaling-stroke;
+}
+.map .route-all {
+  fill: none;
+  stroke: var(--route-dim);
+  stroke-width: 2;
+  stroke-dasharray: 3 6;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.map .route-done {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.map .city-dot { fill: var(--card); stroke: var(--route); stroke-width: 2.5; }
+.map .city.reached .city-dot { fill: var(--route); }
+.map .city-label {
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--text);
+  paint-order: stroke;
+  stroke: var(--halo);
+  stroke-width: 3.5px;
+  stroke-linejoin: round;
+}
+.map .goal-ring { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: 4 3; }
+.map .vehicle { filter: drop-shadow(0 1px 2px rgb(0 0 0 / 45%)); }
+.map .vehicle-body path { fill: var(--accent); stroke: var(--card); stroke-width: 0.6; }
+.map .vehicle-body .train-win { fill: var(--card); stroke: none; }
+.map .pulse {
+  fill: var(--accent);
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.map svg.running .pulse { animation: ping 1.8s ease-out infinite; }
+@keyframes ping {
+  0% { transform: scale(0.4); opacity: 0.45; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+.session-bar { height: 8px; border-radius: 999px; background: var(--track); overflow: hidden; margin: 14px 0 8px; }
+.session-fill { height: 100%; width: 0; background: var(--accent); transition: width 0.3s linear; }
+.gain { margin: 0; text-align: center; color: var(--route); font-size: 0.9rem; font-weight: 600; }
+.hint { margin: 4px 0 14px; text-align: center; font-weight: 700; color: var(--route); }
 
 /* ---------- controls ---------- */
 .controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
@@ -215,8 +271,8 @@ button.primary {
 }
 .message { min-height: 1.6em; margin: 12px 0 0; text-align: center; color: var(--route); font-weight: 600; }
 
-/* ---------- ticket (journey) ---------- */
-.ticket { border-top: 6px solid var(--accent); }
+/* ---------- destination card ---------- */
+.dest { border-top: 6px solid var(--accent); }
 .ticket-kind {
   margin: 0 0 12px;
   font-size: 0.8rem;
@@ -224,6 +280,19 @@ button.primary {
   letter-spacing: 0.14em;
   color: var(--accent);
 }
+
+.photo { margin: 0 0 14px; }
+.photo img {
+  display: block;
+  width: 100%;
+  height: auto; /* the height="640" attribute in the HTML must not set the height */
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: 12px;
+  background: var(--track);
+}
+.photo img[hidden] { display: none; }
+.photo figcaption { margin-top: 4px; font-size: 0.72rem; color: var(--muted); overflow-wrap: anywhere; }
 
 .route-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; }
 .place { display: flex; flex-direction: column; align-items: center; min-width: 5.5rem; text-align: center; }
@@ -253,81 +322,9 @@ button.primary {
 .facts dt { font-size: 0.72rem; color: var(--muted); }
 .facts dd { margin: 0; font-weight: 700; font-size: 0.95rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 
-.goal-bar { height: 12px; border-radius: 999px; background: var(--ring-track); overflow: hidden; }
+.goal-bar { height: 12px; border-radius: 999px; background: var(--track); overflow: hidden; }
 .goal-fill { height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--route), var(--accent)); transition: width 0.3s linear; }
-.goal-pct { margin: 6px 0 0; font-size: 0.9rem; color: var(--muted); min-height: 1.6em; }
-
-.perforation { position: relative; margin: 16px -20px; border-top: 2px dashed var(--line); }
-.perforation::before,
-.perforation::after {
-  content: "";
-  position: absolute;
-  top: -11px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--bg);
-}
-.perforation::before { left: -10px; }
-.perforation::after { right: -10px; }
-
-.leg-title { margin: 0 0 4px; font-size: 0.8rem; letter-spacing: 0.08em; color: var(--muted); }
-
-.track { position: relative; height: 40px; margin: 0 14px; }
-.track-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 0;
-  border-top: 3px dashed var(--line);
-  transform: translateY(-50%);
-}
-.track-done {
-  position: absolute;
-  left: 0;
-  top: -3px;
-  height: 3px;
-  width: 0;
-  background: var(--route);
-}
-.dot {
-  position: absolute;
-  top: 50%;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--route);
-  transform: translate(-50%, -50%);
-}
-.dot-from { left: 0; }
-.dot-to { right: 0; transform: translate(50%, -50%); background: var(--card); border: 3px solid var(--route); }
-
-.vehicle {
-  position: absolute;
-  top: 50%;
-  left: calc(var(--p, 0) * 100%);
-  fill: var(--accent);
-}
-.plane { width: 30px; height: 30px; transform: translate(-50%, -50%) rotate(90deg); }
-.train { width: 46px; height: 23px; transform: translate(-50%, -62%); }
-.train .win { fill: var(--card); }
-
-/* only the vehicle of the selected version is shown */
-.track[data-mode="japan"] .plane,
-.track[data-mode="world"] .train { display: none; }
-
-/* shinkansen runs on rails (solid), airplane flies a dashed route */
-.track[data-mode="japan"] .track-line {
-  height: 8px;
-  border-top: 2px solid var(--line);
-  border-bottom: 2px solid var(--line);
-  background: repeating-linear-gradient(90deg, var(--line) 0 2px, transparent 2px 9px);
-}
-.track[data-mode="japan"] .track-done { top: 2.5px; }
-
-.legs { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 8px; }
-.journey-text { margin: 0 0 8px; }
+.goal-pct { margin: 6px 0 4px; font-size: 0.9rem; color: var(--muted); min-height: 1.6em; }
 .other-totals { margin: 0; }
 
 /* ---------- passport: tickets (shinkansen) and stamps (airplane) ---------- */
@@ -410,7 +407,7 @@ button.primary {
 .bars { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
 .bar-head { display: flex; justify-content: space-between; gap: 8px; font-size: 0.95rem; }
 .bar-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bar-track { height: 10px; border-radius: 999px; background: var(--ring-track); overflow: hidden; margin-top: 4px; }
+.bar-track { height: 10px; border-radius: 999px; background: var(--track); overflow: hidden; margin-top: 4px; }
 .bar-fill { height: 100%; border-radius: 999px; background: var(--route); }
 .daily-fill { width: 0; background: var(--accent); transition: width 0.3s linear; }
 .empty { color: var(--muted); }
@@ -429,8 +426,43 @@ button.primary {
 footer { text-align: center; margin-top: 24px; }
 button.link { border: none; color: var(--muted); text-decoration: underline; padding: 4px 8px; }
 
+.credits { margin-top: 20px; text-align: left; font-size: 0.8rem; color: var(--muted); }
+.credits summary { cursor: pointer; text-align: center; }
+.credits p { margin: 8px 0 4px; }
+.credits ul { list-style: none; padding: 0; margin: 4px 0 0; display: grid; gap: 2px; overflow-wrap: anywhere; }
+
+/* ---------- arrival card (photo of the city you just reached) ---------- */
+.arrival {
+  position: fixed;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  width: min(94vw, 440px);
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 12px;
+  padding: 10px 28px 10px 10px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--accent);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgb(0 0 0 / 28%);
+  z-index: 20;
+  animation: rise 0.35s ease-out;
+}
+.arrival[hidden] { display: none; }
+.arrival:has(img[hidden]) { grid-template-columns: 1fr; }
+.arrival img { display: block; width: 120px; height: 90px; object-fit: cover; border-radius: 10px; align-self: start; }
+.arrival img[hidden] { display: none; }
+.arrival-body { min-width: 0; }
+.arrival-title { margin: 0; font-weight: 700; }
+.arrival-note { margin: 2px 0 4px; font-size: 0.9rem; }
+.arrival-credit { margin: 0; font-size: 0.68rem; color: var(--muted); overflow-wrap: anywhere; }
+.arrival-close { position: absolute; top: 2px; right: 2px; border: none; font-size: 1.3rem; line-height: 1; padding: 4px 8px; }
+@keyframes rise { from { transform: translate(-50%, 24px); opacity: 0; } }
+
 /* ---------- celebration ---------- */
-.confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 10; }
+.confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 30; }
 .confetti i {
   position: absolute;
   top: -16px;
@@ -444,5 +476,7 @@ button.link { border: none; color: var(--muted); text-decoration: underline; pad
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ring-fg, .goal-fill, .daily-fill { transition: none; }
+  .session-fill, .goal-fill, .daily-fill { transition: none; }
+  .arrival { animation: none; }
+  .map svg.running .pulse { animation: none; }
 }
